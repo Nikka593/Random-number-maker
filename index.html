@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random 数字 Maker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        #app {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        button {
+            font-size: 1.2em;
+            padding: 12px 24px;
+            margin: 10px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .number-display {
+            font-size: 6em;
+            margin: 20px 0;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .svg-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        .participant-info {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+
+        .fireworks {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Random 数字 Maker</h1>
+    </header>
+    <div id="app"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const SVGIcon = ({ name }) => {
+            const icons = {
+                users: (
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                ),
+                dice: (
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="2" width="20" height="20" rx="2" ry="2"></rect>
+                        <circle cx="7" cy="7" r="1"></circle>
+                        <circle cx="17" cy="7" r="1"></circle>
+                        <circle cx="7" cy="17" r="1"></circle>
+                        <circle cx="17" cy="17" r="1"></circle>
+                    </svg>
+                ),
+                check: (
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                ),
+            };
+            return <span className="svg-icon">{icons[name]}</span>;
+        };
+
+        function App() {
+            const [stage, setStage] = useState('selectParticipants');
+            const [participants, setParticipants] = useState(2);
+            const [currentParticipant, setCurrentParticipant] = useState(1);
+            const [number, setNumber] = useState({ value: 1, fixed: false });
+            const [allNumbers, setAllNumbers] = useState([]);
+            const fireworksRef = useRef(null);
+
+            useEffect(() => {
+                if (stage === 'generateNumber' && !number.fixed) {
+                    const interval = setInterval(() => {
+                        setNumber(prev => ({ ...prev, value: Math.floor(Math.random() * 100) + 1 }));
+                    }, 50);
+                    return () => clearInterval(interval);
+                }
+            }, [stage, number.fixed]);
+
+            useEffect(() => {
+                if (stage === 'complete') {
+                    const fireworks = fireworksRef.current;
+                    gsap.to(fireworks, { opacity: 1, duration: 0.5 });
+                    setTimeout(() => {
+                        gsap.to(fireworks, { opacity: 0, duration: 0.5 });
+                    }, 3000);
+                }
+            }, [stage]);
+
+            const handleParticipantsSelect = (num) => {
+                setParticipants(num);
+                setStage('generateNumber');
+            };
+
+            const handleFix = () => {
+                setNumber(prev => ({ ...prev, fixed: true }));
+            };
+
+            const handleNext = () => {
+                setAllNumbers(prev => [...prev, number.value]);
+                if (currentParticipant < participants) {
+                    setCurrentParticipant(prev => prev + 1);
+                    setNumber({ value: 1, fixed: false });
+                    setStage('generateNumber');
+                } else {
+                    setStage('complete');
+                }
+            };
+
+            if (stage === 'selectParticipants') {
+                return (
+                    <div className="container">
+                        <h2>参加人数を選択してください：</h2>
+                        {[2, 3, 4, 5].map(num => (
+                            <button key={num} onClick={() => handleParticipantsSelect(num)}>
+                                <SVGIcon name="users" />{num}人
+                            </button>
+                        ))}
+                    </div>
+                );
+            }
+
+            if (stage === 'generateNumber') {
+                return (
+                    <div className="container">
+                        <div className="participant-info">参加者 {currentParticipant} の番です</div>
+                        <div className="number-display">{number.value}</div>
+                        {!number.fixed ? (
+                            <button onClick={handleFix}><SVGIcon name="dice" />確定</button>
+                        ) : (
+                            <button onClick={handleNext}><SVGIcon name="check" />OK</button>
+                        )}
+                    </div>
+                );
+            }
+
+            if (stage === 'complete') {
+                return (
+                    <div className="container">
+                        <h2>全員の数字が確定しました！</h2>
+                        <p>結果は主催者にお問い合わせください。</p>
+                        <div className="fireworks" ref={fireworksRef}></div>
+                    </div>
+                );
+            }
+        }
+
+        ReactDOM.render(<App />, document.getElementById('app'));
+    </script>
+</body>
+</html>
